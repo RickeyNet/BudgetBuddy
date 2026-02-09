@@ -1,0 +1,100 @@
+/**
+ * BudgetBuddy — Type Definitions
+ * File: src/types/index.ts
+ *
+ * Central type definitions for the entire app.
+ * All data structures used across screens, storage, and components
+ * are defined here to ensure type safety and consistency.
+ *
+ * NOTE: Keep types flat and simple for fast serialization to AsyncStorage.
+ */
+
+/* ─── Debt Types ─── */
+
+/**
+ * Represents a single debt entry tracked by the user.
+ * Stores both the original balance (for progress calculation)
+ * and the current remaining balance.
+ */
+export interface Debt {
+  /** Unique identifier — generated via uuid */
+  id: string;
+
+  /** User-friendly name, e.g. "Chase Visa" or "Student Loan" */
+  name: string;
+
+  /** Current remaining balance in dollars */
+  balance: number;
+
+  /** Original balance when the debt was first added — never changes */
+  originalBalance: number;
+
+  /** Annual Percentage Rate (APR) as a whole number, e.g. 19.9 = 19.9% */
+  rate: number;
+
+  /** Minimum monthly payment in dollars */
+  minPayment: number;
+
+  /** ISO timestamp of when this debt was created */
+  createdAt: string;
+}
+
+/**
+ * Form data for creating a new debt.
+ * Omits auto-generated fields (id, createdAt) from the full Debt type.
+ */
+export type NewDebtInput = Omit<Debt, "id" | "createdAt">;
+
+/* ─── Payment Types ─── */
+
+/**
+ * Records a single payment made toward a debt.
+ * Stored separately to enable payment history tracking.
+ */
+export interface Payment {
+  /** Unique identifier */
+  id: string;
+
+  /** The debt this payment was applied to */
+  debtId: string;
+
+  /** Payment amount in dollars */
+  amount: number;
+
+  /** ISO timestamp of when payment was recorded */
+  date: string;
+}
+
+/* ─── User Account Types ─── */
+
+/**
+ * Represents an anonymous user account.
+ * No email or phone required — the user is identified solely by UUID.
+ * An optional display name can be set for personalization.
+ */
+export interface UserAccount {
+  /** Unique user identifier — generated on first launch */
+  id: string;
+
+  /** Optional display name (defaults to "Buddy") */
+  displayName: string;
+
+  /** ISO timestamp of account creation */
+  createdAt: string;
+
+  /** Whether the user has completed the onboarding flow */
+  onboardingComplete: boolean;
+}
+
+/* ─── Navigation Types ─── */
+
+/**
+ * Defines the screens available in the bottom tab navigator.
+ * Each key maps to a screen component; `undefined` means no params.
+ */
+export type RootTabParamList = {
+  DebtTracker: undefined;
+  Budget: undefined;
+  Investments: undefined;
+  Profile: undefined;
+};
