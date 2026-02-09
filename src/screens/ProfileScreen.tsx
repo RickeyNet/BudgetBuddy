@@ -6,6 +6,7 @@
  * Features:
  * - Shows the auto-generated anonymous user ID (truncated)
  * - Editable display name
+ * - Theme selection in settings
  * - Data management (export, reset)
  * - App info and version
  *
@@ -24,8 +25,8 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Modal,
 } from "react-native";
-import { COLORS } from "../theme/colors";
 import { UserAccount } from "../types";
 import {
   getOrCreateUser,
@@ -33,8 +34,13 @@ import {
   deleteAccount,
 } from "../storage/userStorage";
 import { clearAllData } from "../storage/debtStorage";
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemePreset } from "../theme/themes";
 
 const ProfileScreen: React.FC = () => {
+  /** Current theme context */
+  const { colors, presets, themeId, setThemeId } = useTheme();
+
   /** Current user account state */
   const [user, setUser] = useState<UserAccount | null>(null);
 
@@ -43,6 +49,9 @@ const ProfileScreen: React.FC = () => {
 
   /** Whether the name input is in edit mode */
   const [isEditing, setIsEditing] = useState(false);
+
+  /** Whether theme selector modal is visible */
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   /** Load user on mount */
   useEffect(() => {
@@ -63,6 +72,17 @@ const ProfileScreen: React.FC = () => {
     setUser(updated);
     setIsEditing(false);
   }, [editName]);
+
+  /**
+   * Handle theme selection
+   */
+  const handleThemeSelect = useCallback(
+    async (id: string) => {
+      await setThemeId(id);
+      setShowThemeModal(false);
+    },
+    [setThemeId]
+  );
 
   /**
    * Resets all app data after user confirmation.
@@ -92,104 +112,285 @@ const ProfileScreen: React.FC = () => {
 
   if (!user) return null;
 
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {/* ── Header ── */}
-      <View style={styles.titleSection}>
-        <Text style={styles.appLabel}>BUDGETBUDDY</Text>
-        <Text style={styles.screenTitle}>Profile</Text>
-        <Text style={styles.screenSubtitle}>
-          Your anonymous account settings.
-        </Text>
-      </View>
+  /** Get current theme display name */
+  const currentTheme = presets.find((p) => p.id === themeId);
 
-      {/* ── Avatar + Name Card ── */}
-      <View style={styles.profileCard}>
-        {/* Avatar circle with first letter */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user.displayName.charAt(0).toUpperCase()}
+  return (
+    <>
+      <ScrollView
+        style={[styles.screen, { backgroundColor: colors.bg }]}
+        contentContainerStyle={styles.content}
+      >
+        {/* ── Header ── */}
+        <View style={styles.titleSection}>
+          <Text style={[styles.appLabel, { color: colors.textDim }]}>
+            BUDGETBUDDY
+          </Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>Profile</Text>
+          <Text style={[styles.screenSubtitle, { color: colors.textMuted }]}>
+            Your anonymous account settings.
           </Text>
         </View>
 
-        {/* Display name (editable) */}
-        {isEditing ? (
-          <View style={styles.editRow}>
-            <TextInput
-              style={styles.nameInput}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Enter name..."
-              placeholderTextColor={COLORS.textMuted}
-              autoFocus
-              onSubmitEditing={handleSaveName}
-              maxLength={20}
-            />
-            <TouchableOpacity onPress={handleSaveName} style={styles.saveBtn}>
-              <Text style={styles.saveBtnText}>Save</Text>
+        {/* ── Profile Card ── */}
+        <View
+          style={[
+            styles.profileCard,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
+          ]}
+        >
+          {/* Avatar circle */}
+          <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
+            <Text style={[styles.avatarText, { color: colors.white }]}>
+              {user.displayName[0].toUpperCase()}
+            </Text>
+          </View>
+
+          {/* Display name — tap to edit */}
+          {isEditing ? (
+            <View style={styles.editRow}>
+              <TextInput
+                style={[
+                  styles.nameInput,
+                  {
+                    backgroundColor: colors.bg,
+                    borderColor: colors.cardBorder,
+                    color: colors.text,
+                  },
+                ]}
+                value={editName}
+                onChangeText={setEditName}
+                autoFocus
+                maxLength={20}
+              />
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: colors.success }]}
+                onPress={handleSaveName}
+              >
+                <Text style={[styles.saveBtnText, { color: colors.bg }]}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => setIsEditing(true)}>
+              <Text style={[styles.displayName, { color: colors.text }]}>
+                {user.displayName}
+              </Text>
+              <Text style={[styles.editHint, { color: colors.textMuted }]}>
+                Tap to edit
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Anonymous ID badge */}
+          <View style={[styles.idBadge, { backgroundColor: colors.bg }]}>
+            <Text style={[styles.idLabel, { color: colors.textMuted }]}>
+              ACCOUNT ID
+            </Text>
+            <Text style={[styles.idValue, { color: colors.textDim }]}>
+              {user.id.slice(0, 8)}...
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Privacy Info ── */}
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: `${colors.success}20`,
+            },
+          ]}
+        >
+          <Text style={[styles.infoTitle, { color: colors.text }]}>
+            🔒 Privacy First
+          </Text>
+          <Text style={[styles.infoText, { color: colors.textDim }]}>
+            Your data is stored locally on this device and is never sent to any
+            server.
+          </Text>
+        </View>
+
+        {/* ── Settings Section ── */}
+        <View style={styles.settingsSection}>
+          <Text style={[styles.settingsSectionTitle, { color: colors.textMuted }]}>
+            APPEARANCE
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.settingsRow,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+            onPress={() => setShowThemeModal(true)}
+          >
+            <View>
+              <Text style={[styles.settingsRowText, { color: colors.text }]}>
+                Theme
+              </Text>
+              <Text style={[styles.settingsRowSubtext, { color: colors.textDim }]}>
+                {currentTheme?.name || "Forest Gold"}
+              </Text>
+            </View>
+            <Text style={[styles.settingsRowArrow, { color: colors.textDim }]}>
+              →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.settingsSection}>
+          <Text style={[styles.settingsSectionTitle, { color: colors.textMuted }]}>
+            DATA MANAGEMENT
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.settingsRow,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+          >
+            <Text style={[styles.settingsRowText, { color: colors.text }]}>
+              Export My Data
+            </Text>
+            <Text style={[styles.settingsRowArrow, { color: colors.textDim }]}>
+              →
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.settingsRow,
+              styles.dangerRow,
+              { backgroundColor: colors.card },
+            ]}
+            onPress={handleResetData}
+          >
+            <Text style={[styles.settingsRowText, { color: colors.text }]}>
+              Reset All Data
+            </Text>
+            <Text style={[styles.settingsRowArrow, { color: colors.text }]}>
+              →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── App Info ── */}
+        <View style={styles.appInfo}>
+          <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
+            BudgetBuddy v1.0.0
+          </Text>
+          <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
+            Built with React Native + Expo
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* ── Theme Selection Modal ── */}
+      <Modal
+        visible={showThemeModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowThemeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Choose Theme
+            </Text>
+
+            <ScrollView style={styles.themeList}>
+              {presets.map((preset) => (
+                <TouchableOpacity
+                  key={preset.id}
+                  style={[
+                    styles.themeOption,
+                    {
+                      borderColor:
+                        themeId === preset.id
+                          ? preset.colors.accent
+                          : colors.cardBorder,
+                      backgroundColor:
+                        themeId === preset.id
+                          ? `${preset.colors.accent}10`
+                          : "transparent",
+                    },
+                  ]}
+                  onPress={() => handleThemeSelect(preset.id)}
+                >
+                  {/* Color swatches */}
+                  <View style={styles.themeColorRow}>
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: preset.colors.accent },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: preset.colors.success },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeSwatch,
+                        { backgroundColor: preset.colors.text },
+                      ]}
+                    />
+                  </View>
+
+                  {/* Theme name */}
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      { color: preset.colors.text },
+                    ]}
+                  >
+                    {preset.name}
+                  </Text>
+
+                  {/* Selection check */}
+                  {themeId === preset.id && (
+                    <View
+                      style={[
+                        styles.checkMark,
+                        { backgroundColor: preset.colors.accent },
+                      ]}
+                    >
+                      <Text style={[styles.checkMarkText, { color: preset.colors.white }]}>
+                        ✓
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.closeBtn, { backgroundColor: colors.accent }]}
+              onPress={() => setShowThemeModal(false)}
+            >
+              <Text style={[styles.closeBtnText, { color: colors.white }]}>
+                Done
+              </Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity onPress={() => setIsEditing(true)}>
-            <Text style={styles.displayName}>{user.displayName}</Text>
-            <Text style={styles.editHint}>Tap to edit</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Anonymous ID badge */}
-        <View style={styles.idBadge}>
-          <Text style={styles.idLabel}>ANONYMOUS ID</Text>
-          <Text style={styles.idValue}>
-            {user.id.substring(0, 8)}...{user.id.substring(user.id.length - 4)}
-          </Text>
         </View>
-      </View>
-
-      {/* ── Privacy Info Card ── */}
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>🔒 Privacy First</Text>
-        <Text style={styles.infoText}>
-          BudgetBuddy does not collect your email, phone number, or any
-          personal information. Your data is stored locally on this device
-          and is never sent to any server.
-        </Text>
-      </View>
-
-      {/* ── Settings Section ── */}
-      <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>DATA MANAGEMENT</Text>
-
-        <TouchableOpacity style={styles.settingsRow}>
-          <Text style={styles.settingsRowText}>Export My Data</Text>
-          <Text style={styles.settingsRowArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.settingsRow, styles.dangerRow]}
-          onPress={handleResetData}
-        >
-          <Text style={[styles.settingsRowText, { color: COLORS.danger }]}>
-            Reset All Data
-          </Text>
-          <Text style={[styles.settingsRowArrow, { color: COLORS.danger }]}>
-            →
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── App Info ── */}
-      <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>BudgetBuddy v1.0.0</Text>
-        <Text style={styles.appInfoText}>Built with React Native + Expo</Text>
-      </View>
-    </ScrollView>
+      </Modal>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   content: {
     paddingHorizontal: 16,
@@ -201,26 +402,21 @@ const styles = StyleSheet.create({
   },
   appLabel: {
     fontSize: 12,
-    color: COLORS.textDim,
     letterSpacing: 2,
     marginBottom: 4,
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.text,
     marginBottom: 4,
   },
   screenSubtitle: {
     fontSize: 14,
-    color: COLORS.textMuted,
   },
 
   /* Profile Card */
   profileCard: {
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
     borderRadius: 20,
     padding: 28,
     alignItems: "center",
@@ -230,30 +426,21 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
   },
   avatarText: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.white,
   },
   displayName: {
     fontSize: 22,
     fontWeight: "700",
-    color: COLORS.text,
     textAlign: "center",
   },
   editHint: {
     fontSize: 12,
-    color: COLORS.textMuted,
     textAlign: "center",
     marginTop: 2,
   },
@@ -263,31 +450,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nameInput: {
-    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    color: COLORS.text,
     fontSize: 16,
     minWidth: 160,
     textAlign: "center",
   },
   saveBtn: {
-    backgroundColor: COLORS.success,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   saveBtnText: {
-    color: COLORS.bg,
     fontWeight: "700",
     fontSize: 14,
   },
   idBadge: {
     marginTop: 20,
-    backgroundColor: COLORS.bg,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -295,21 +476,17 @@ const styles = StyleSheet.create({
   },
   idLabel: {
     fontSize: 10,
-    color: COLORS.textMuted,
     letterSpacing: 1,
     marginBottom: 2,
   },
   idValue: {
     fontSize: 13,
-    color: COLORS.textDim,
     fontVariant: ["tabular-nums"],
   },
 
   /* Privacy Info */
   infoCard: {
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: `${COLORS.success}20`,
     borderRadius: 16,
     padding: 20,
     marginTop: 16,
@@ -317,12 +494,10 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.text,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 13,
-    color: COLORS.textDim,
     lineHeight: 19,
   },
 
@@ -332,14 +507,11 @@ const styles = StyleSheet.create({
   },
   settingsSectionTitle: {
     fontSize: 11,
-    color: COLORS.textMuted,
     letterSpacing: 1.5,
     marginBottom: 10,
   },
   settingsRow: {
-    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -348,17 +520,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  dangerRow: {
-    borderColor: `${COLORS.danger}20`,
-  },
   settingsRowText: {
     fontSize: 15,
-    color: COLORS.text,
     fontWeight: "500",
+  },
+  settingsRowSubtext: {
+    fontSize: 13,
+    marginTop: 2,
   },
   settingsRowArrow: {
     fontSize: 16,
-    color: COLORS.textDim,
+  },
+  dangerRow: {
+    borderColor: "#ff525220",
   },
 
   /* App Info */
@@ -369,7 +543,74 @@ const styles = StyleSheet.create({
   },
   appInfoText: {
     fontSize: 12,
-    color: COLORS.textMuted,
+  },
+
+  /* Theme Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingTop: 24,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    maxHeight: "70%",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  themeList: {
+    marginBottom: 20,
+  },
+  themeOption: {
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  themeColorRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  themeSwatch: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+  },
+  themeOptionText: {
+    fontSize: 16,
+    fontWeight: "600",
+    flex: 1,
+  },
+  checkMark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkMarkText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  closeBtn: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  closeBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
 

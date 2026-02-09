@@ -11,6 +11,7 @@
  * - Inline payment input (collapsible)
  * - Status badges (Almost there / Making progress / Keep going)
  * - Estimated months to payoff
+ * - Dynamic theming support
  *
  * Performance: Uses React.memo to prevent unnecessary re-renders
  * when sibling debt cards update.
@@ -27,24 +28,8 @@ import {
 import { Debt } from "../types";
 import { calcMonthsToPayoff, formatCurrency } from "../utils/calculations";
 import ProgressRing from "./ProgressRing";
-
-/* ─── Color Constants ─── */
-const COLORS = {
-  card: "#131829",
-  cardBorder: "#1e2642",
-  accent: "#6c5ce7",
-  success: "#00e676",
-  successDim: "rgba(0, 230, 118, 0.15)",
-  warning: "#ffc107",
-  warningDim: "rgba(255, 193, 7, 0.15)",
-  danger: "#ff5252",
-  dangerDim: "rgba(255, 82, 82, 0.15)",
-  text: "#e8eaf6",
-  textDim: "#7986cb",
-  textMuted: "#3d4566",
-  bg: "#0a0e1a",
-  white: "#ffffff",
-} as const;
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemeColors } from "../theme/themes";
 
 /* ─── Props Interface ─── */
 interface DebtCardProps {
@@ -60,6 +45,12 @@ interface DebtCardProps {
 
 /* ─── Component ─── */
 const DebtCard: React.FC<DebtCardProps> = ({ debt, onPayment, onDelete }) => {
+  /** Get current theme colors */
+  const { colors } = useTheme();
+
+  /** Memoized styles - only recreate when colors change */
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+
   /** Local state for the payment input visibility and value */
   const [showPayInput, setShowPayInput] = useState(false);
   const [payAmount, setPayAmount] = useState("");
@@ -77,17 +68,17 @@ const DebtCard: React.FC<DebtCardProps> = ({ debt, onPayment, onDelete }) => {
   /** Color coding based on progress */
   const ringColor =
     percentPaid >= 75
-      ? COLORS.success
+      ? colors.success
       : percentPaid >= 40
-      ? COLORS.warning
-      : COLORS.accent;
+      ? colors.warning || colors.accent
+      : colors.accent;
 
   const statusBg =
     percentPaid >= 75
-      ? COLORS.successDim
+      ? colors.successDim
       : percentPaid >= 40
-      ? COLORS.warningDim
-      : COLORS.dangerDim;
+      ? (colors.warningDim || `${colors.accent}20`)
+      : `${colors.accent}20`;
 
   const statusText =
     percentPaid >= 75
@@ -147,7 +138,7 @@ const DebtCard: React.FC<DebtCardProps> = ({ debt, onPayment, onDelete }) => {
         </View>
         <View style={styles.balanceRight}>
           <Text style={styles.balanceLabel}>PAID OFF</Text>
-          <Text style={[styles.balanceAmount, { color: COLORS.success }]}>
+          <Text style={[styles.balanceAmount, { color: colors.success }]}>
             {formatCurrency(debt.originalBalance - debt.balance)}
           </Text>
         </View>
@@ -170,49 +161,56 @@ const DebtCard: React.FC<DebtCardProps> = ({ debt, onPayment, onDelete }) => {
       <View style={styles.footerRow}>
         <Text style={styles.timelineText}>
           {monthsLeft === Infinity
-            ? "⚠ Payment too low"
-            : `~${monthsLeft} months to payoff`}
+            ? "Adjust payment plan"
+            : `${monthsLeft} months to payoff`}
         </Text>
 
         <View style={styles.actionButtons}>
           <TouchableOpacity
+            style={[styles.payButton, { backgroundColor: colors.accent }]}
             onPress={() => setShowPayInput(!showPayInput)}
-            style={[
-              styles.payButton,
-              showPayInput && { backgroundColor: COLORS.cardBorder },
-            ]}
           >
-            <Text style={styles.payButtonText}>
-              {showPayInput ? "Cancel" : "💸 Pay"}
+            <Text style={[styles.payButtonText, { color: colors.white }]}>
+              Pay
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.deleteButton, { backgroundColor: colors.dangerDim || '#ff525220' }]}
             onPress={() => onDelete(debt.id)}
-            style={styles.deleteButton}
           >
-            <Text style={styles.deleteButtonText}>✕</Text>
+            <Text style={[styles.deleteButtonText, { color: colors.danger || '#ff5252' }]}>
+              ✕
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── Inline Payment Input (collapsible) ── */}
+      {/* ── Collapsible Payment Input ── */}
       {showPayInput && (
         <View style={styles.payInputRow}>
           <TextInput
-            style={styles.payInput}
-            placeholder="Enter amount..."
-            placeholderTextColor={COLORS.textMuted}
+            style={[
+              styles.payInput,
+              {
+                backgroundColor: colors.bg,
+                borderColor: colors.cardBorder,
+                color: colors.text,
+              },
+            ]}
+            placeholder="Payment amount"
+            placeholderTextColor={colors.textMuted}
             keyboardType="decimal-pad"
             value={payAmount}
             onChangeText={setPayAmount}
-            onSubmitEditing={handlePayment}
           />
           <TouchableOpacity
+            style={[styles.confirmPayButton, { backgroundColor: colors.success }]}
             onPress={handlePayment}
-            style={styles.confirmPayButton}
           >
-            <Text style={styles.confirmPayText}>Pay</Text>
+            <Text style={[styles.confirmPayText, { color: colors.bg }]}>
+              ✓
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -220,167 +218,162 @@ const DebtCard: React.FC<DebtCardProps> = ({ debt, onPayment, onDelete }) => {
   );
 };
 
-/* ─── Styles ─── */
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-  },
+/**
+ * Style factory function - creates styles based on current theme
+ * Memoized at call site to prevent unnecessary recreation
+ */
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 12,
+    },
 
-  /* Header */
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  headerLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  debtName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  rateText: {
-    fontSize: 13,
-    color: COLORS.textDim,
-  },
+    /* Header */
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 16,
+    },
+    headerLeft: {
+      flex: 1,
+      marginRight: 12,
+    },
+    nameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 4,
+    },
+    debtName: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 20,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    rateText: {
+      fontSize: 13,
+      color: colors.textDim,
+    },
 
-  /* Progress Ring */
-  ringContainer: {
-    width: 64,
-    height: 64,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ringLabel: {
-    position: "absolute",
-    fontSize: 13,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-  },
+    /* Progress Ring */
+    ringContainer: {
+      width: 64,
+      height: 64,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    ringLabel: {
+      position: "absolute",
+      fontSize: 13,
+      fontWeight: "700",
+      fontVariant: ["tabular-nums"],
+    },
 
-  /* Balance Row */
-  balanceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  balanceRight: {
-    alignItems: "flex-end",
-  },
-  balanceLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  balanceAmount: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.text,
-    fontVariant: ["tabular-nums"],
-  },
+    /* Balance Row */
+    balanceRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 16,
+    },
+    balanceRight: {
+      alignItems: "flex-end",
+    },
+    balanceLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      letterSpacing: 1,
+      marginBottom: 2,
+    },
+    balanceAmount: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.text,
+      fontVariant: ["tabular-nums"],
+    },
 
-  /* Progress Bar */
-  progressTrack: {
-    height: 6,
-    backgroundColor: COLORS.cardBorder,
-    borderRadius: 3,
-    marginTop: 12,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
+    /* Progress Bar */
+    progressTrack: {
+      height: 6,
+      backgroundColor: colors.cardBorder,
+      borderRadius: 3,
+      marginTop: 12,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      borderRadius: 3,
+    },
 
-  /* Footer */
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
-  },
-  timelineText: {
-    fontSize: 12,
-    color: COLORS.textDim,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  payButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  payButtonText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  deleteButton: {
-    backgroundColor: COLORS.dangerDim,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  deleteButtonText: {
-    color: COLORS.danger,
-    fontSize: 12,
-  },
+    /* Footer */
+    footerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 12,
+    },
+    timelineText: {
+      fontSize: 12,
+      color: colors.textDim,
+    },
+    actionButtons: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    payButton: {
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    payButtonText: {
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    deleteButton: {
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    deleteButtonText: {
+      fontSize: 12,
+    },
 
-  /* Payment Input */
-  payInputRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 12,
-  },
-  payInput: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: COLORS.text,
-    fontSize: 14,
-    fontVariant: ["tabular-nums"],
-  },
-  confirmPayButton: {
-    backgroundColor: COLORS.success,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    justifyContent: "center",
-  },
-  confirmPayText: {
-    color: COLORS.bg,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-});
+    /* Payment Input */
+    payInputRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 12,
+    },
+    payInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 14,
+      fontVariant: ["tabular-nums"],
+    },
+    confirmPayButton: {
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      justifyContent: "center",
+    },
+    confirmPayText: {
+      fontWeight: "700",
+      fontSize: 14,
+    },
+  });
 
 export default React.memo(DebtCard);

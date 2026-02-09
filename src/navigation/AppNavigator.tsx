@@ -4,7 +4,7 @@
  *
  * Sets up the bottom tab navigation for the app.
  * Contains 4 tabs:
- *   1. Debt Tracker (📊) — default/home screen
+ *   1. Debt Tracker (⛓️) — default/home screen
  *   2. Budget (💰)       — income & expense tracking
  *   3. Investments (📈)  — growth projections
  *   4. Profile (👤)      — anonymous account & settings
@@ -17,14 +17,15 @@
  *
  * Performance:
  * - lazy: true (default) — screens only mount when first visited
- * - Tab bar uses a static style object to avoid re-creation each render
+ * - Tab bar uses dynamic theme colors that update when theme changes
  */
 
 import React from "react";
 import { Text, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { RootTabParamList } from "../types";
-import { COLORS } from "../theme/colors";
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemeColors } from "../theme/themes";
 
 /* ── Screen Imports ── */
 import DebtTrackerScreen from "../screens/DebtTrackerScreen";
@@ -59,6 +60,9 @@ const TAB_LABELS: Record<keyof RootTabParamList, string> = {
 };
 
 const AppNavigator: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+
   return (
     <Tab.Navigator
       initialRouteName="DebtTracker"
@@ -84,8 +88,8 @@ const AppNavigator: React.FC = () => {
         tabBarStyle: styles.tabBar,
 
         /** Active indicator color (used on some platforms) */
-        tabBarActiveTintColor: COLORS.accent,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
       })}
     >
       <Tab.Screen name="DebtTracker" component={DebtTrackerScreen} />
@@ -96,35 +100,36 @@ const AppNavigator: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: `${COLORS.card}ee`,
-    borderTopColor: COLORS.cardBorder,
-    borderTopWidth: 1,
-    height: 70,
-    paddingTop: 8,
-    paddingBottom: 12,
-    position: "absolute",
-    elevation: 0,
-  },
-  icon: {
-    fontSize: 22,
-  },
-  iconInactive: {
-    opacity: 0.4,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    marginTop: 2,
-  },
-  labelActive: {
-    color: COLORS.accent,
-  },
-  labelInactive: {
-    color: COLORS.textMuted,
-  },
-});
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    tabBar: {
+      backgroundColor: `${colors.card}ee`,
+      borderTopColor: colors.cardBorder,
+      borderTopWidth: 1,
+      height: 70,
+      paddingTop: 8,
+      paddingBottom: 12,
+      position: "absolute",
+      elevation: 0,
+    },
+    icon: {
+      fontSize: 22,
+    },
+    iconInactive: {
+      opacity: 0.4,
+    },
+    label: {
+      fontSize: 10,
+      fontWeight: "600",
+      letterSpacing: 0.3,
+      marginTop: 2,
+    },
+    labelActive: {
+      color: colors.accent,
+    },
+    labelInactive: {
+      color: colors.textMuted,
+    },
+  });
 
 export default AppNavigator;

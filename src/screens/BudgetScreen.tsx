@@ -15,19 +15,23 @@
 
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS } from "../theme/colors";
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemeColors } from "../theme/themes";
 
 const BudgetScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+
   return (
-    <View style={styles.screen}>
-      {/* ── Header ── */}
-      <View style={styles.titleSection}>
-        <Text style={styles.appLabel}>BUDGETBUDDY</Text>
-        <Text style={styles.screenTitle}>Budget</Text>
-        <Text style={styles.screenSubtitle}>
-          Track income, expenses, and spending limits.
-        </Text>
-      </View>
+  <View style={styles.screen}>
+    {/* ── Header ── */}
+    <View style={styles.titleSection}>
+      <Text style={styles.appLabel}>BUDGETBUDDY</Text>
+      <Text style={styles.screenTitle}>Budget</Text>
+      <Text style={styles.screenSubtitle}>
+        Track income, expenses, and spending limits.
+      </Text>
+    </View>
 
       {/* ── Coming Soon Card ── */}
       <View style={styles.placeholderCard}>
@@ -53,10 +57,9 @@ const BudgetScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
     paddingHorizontal: 16,
   },
   titleSection: {
@@ -65,24 +68,24 @@ const styles = StyleSheet.create({
   },
   appLabel: {
     fontSize: 12,
-    color: COLORS.textDim,
+    color: colors.textDim,
     letterSpacing: 2,
     marginBottom: 4,
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 4,
   },
   screenSubtitle: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   placeholderCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
@@ -95,12 +98,12 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 8,
   },
   placeholderText: {
     fontSize: 14,
-    color: COLORS.textDim,
+    color: colors.textDim,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 20,
@@ -112,14 +115,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featurePill: {
-    backgroundColor: `${COLORS.accent}20`,
+    backgroundColor: `${colors.accent}20`,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   featurePillText: {
     fontSize: 12,
-    color: COLORS.accent,
+    color: colors.accent,
     fontWeight: "600",
   },
 });

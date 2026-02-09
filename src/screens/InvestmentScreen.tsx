@@ -15,9 +15,13 @@
 
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS } from "../theme/colors";
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemeColors } from "../theme/themes";
 
 const InvestmentScreen: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+
   return (
     <View style={styles.screen}>
       {/* ── Header ── */}
@@ -66,7 +70,7 @@ const InvestmentScreen: React.FC = () => {
             <Text style={styles.teaserArrowText}>→</Text>
           </View>
           <View style={styles.teaserStat}>
-            <Text style={[styles.teaserValue, { color: COLORS.success }]}>
+            <Text style={[styles.teaserValue, { color: colors.success }]}>
               $379,684
             </Text>
             <Text style={styles.teaserCaption}>After 20 years @ 7%</Text>
@@ -77,10 +81,9 @@ const InvestmentScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
     paddingHorizontal: 16,
   },
   titleSection: {
@@ -89,24 +92,24 @@ const styles = StyleSheet.create({
   },
   appLabel: {
     fontSize: 12,
-    color: COLORS.textDim,
+    color: colors.textDim,
     letterSpacing: 2,
     marginBottom: 4,
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 4,
   },
   screenSubtitle: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   placeholderCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
@@ -119,12 +122,12 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 8,
   },
   placeholderText: {
     fontSize: 14,
-    color: COLORS.textDim,
+    color: colors.textDim,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 20,
@@ -136,36 +139,36 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featurePill: {
-    backgroundColor: `${COLORS.teal}20`,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+  backgroundColor: `${colors.accent}20`,
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 20,
   },
   featurePillText: {
     fontSize: 12,
-    color: COLORS.teal,
+    color: colors.accent,
     fontWeight: "600",
   },
 
   /* Compound Interest Teaser */
   teaserCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: `${COLORS.success}20`,
+    borderColor: `${colors.success}20`,
     borderRadius: 16,
     padding: 20,
     marginTop: 16,
   },
   teaserLabel: {
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
   },
   teaserTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 16,
   },
   teaserRow: {
@@ -180,20 +183,20 @@ const styles = StyleSheet.create({
   teaserValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: COLORS.text,
+    color: colors.text,
     fontVariant: ["tabular-nums"],
     marginBottom: 2,
   },
   teaserCaption: {
     fontSize: 11,
-    color: COLORS.textDim,
+    color: colors.textDim,
   },
   teaserArrow: {
     paddingHorizontal: 8,
   },
   teaserArrowText: {
     fontSize: 20,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
 });
 

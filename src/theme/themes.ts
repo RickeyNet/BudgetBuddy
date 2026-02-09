@@ -13,10 +13,16 @@ export type ThemeColors = Readonly<{
   accent: string;
   success: string;
   successDim: string;
+  warning: string;        
+  warningDim: string;     
+  danger: string;         
+  dangerDim: string;      
   text: string;
   textDim: string;
   textMuted: string;
   white: string;
+  teal: string;           
+  tealDim: string;        
 }>;
 
 export type ThemePreset = Readonly<{
@@ -25,10 +31,6 @@ export type ThemePreset = Readonly<{
   colors: ThemeColors;
 }>;
 
-/**
- * Your custom scheme (Forest + Gold).
- * NOTE: I preserved your values exactly.
- */
 const FOREST_GOLD: ThemePreset = {
   id: "forest_gold",
   name: "Forest Gold",
@@ -38,18 +40,20 @@ const FOREST_GOLD: ThemePreset = {
     cardBorder: "#765812",
     accent: "#0b440c",
     success: "#165d0e",
-    successDim: "rgba(0, 230, 118, 0.15)",
+    successDim: "rgba(22, 93, 14, 0.15)",
+    warning: "#d4a00c",                      
+    warningDim: "rgba(212, 160, 12, 0.15)",
+    danger: "#a83232",                       
+    dangerDim: "rgba(168, 50, 50, 0.15)",    
     text: "#795c0c",
     textDim: "#085c1a",
     textMuted: "#23603b",
     white: "#ffffff54",
+    teal: "#0c8a7a",                         
+    tealDim: "rgba(12, 138, 122, 0.15)",  
   },
-} as const;
+};
 
-/**
- * A second preset (example) — keeps your old theme around as an option.
- * Adjust as you like.
- */
 const NEON_PURPLE: ThemePreset = {
   id: "neon_purple",
   name: "Neon Purple",
@@ -60,12 +64,18 @@ const NEON_PURPLE: ThemePreset = {
     accent: "#6c5ce7",
     success: "#00e676",
     successDim: "rgba(0, 230, 118, 0.15)",
+    warning: "#ffc107",                      
+    warningDim: "rgba(255, 193, 7, 0.15)",   
+    danger: "#ff5252",                       
+    dangerDim: "rgba(255, 82, 82, 0.15)",    
     text: "#e8eaf6",
     textDim: "#7986cb",
     textMuted: "#3d4566",
     white: "#ffffff",
+    teal: "#00bcd4",                         
+    tealDim: "rgba(0, 188, 212, 0.15)", 
   },
-} as const;
+};
 
 /** Add more presets here later */
 export const THEME_PRESETS: readonly ThemePreset[] = [FOREST_GOLD, NEON_PURPLE] as const;
